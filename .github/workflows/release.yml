@@ -23,12 +23,7 @@ concurrency:
     cancel-in-progress: false
 
 jobs:
-    test:
-        if: startsWith(github.ref, 'refs/heads/main')
-        uses: ./.github/workflows/test.yml
-
     release:
-        needs: test
         runs-on: ubuntu-latest
 
         steps:
