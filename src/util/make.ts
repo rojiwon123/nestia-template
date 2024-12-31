@@ -1,5 +1,4 @@
 import { randomBytes, randomInt, randomUUID } from "crypto";
-import { Option } from "effect";
 import typia from "typia";
 
 export namespace Make {
@@ -22,11 +21,11 @@ export namespace Make {
      * 지연 평가된 sigleton 객체를 정의할 때 사용합니다.
      */
     export const once = <T>(closure: () => T) => {
-        let value: Option.Option<T> = Option.none();
+        const none = Symbol("None");
+        let value: T | typeof none = none;
         return (): T => {
-            const some = Option.match(value, { onSome: (i) => i, onNone: closure });
-            value = Option.some(some);
-            return some;
+            value = value === none ? closure() : value;
+            return value;
         };
     };
 }

@@ -1,5 +1,5 @@
+import { isNull } from "@fxts/core";
 import { DynamicExecutor } from "@nestia/e2e";
-import { isNull } from "effect/Predicate";
 import { appendFileSync, writeFileSync } from "fs";
 
 export namespace TestReport {

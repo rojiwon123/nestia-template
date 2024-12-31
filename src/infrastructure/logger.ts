@@ -1,5 +1,5 @@
 import { getCurrentInvoke } from "@codegenie/serverless-express";
-import { Array, Layer, LogLevel, Logger, String } from "effect";
+import { isString } from "@fxts/core";
 import { InspectOptions, inspect } from "util";
 import winston from "winston";
 
@@ -7,7 +7,7 @@ import { Make } from "@/util/make";
 
 import { Config, config } from "./config";
 
-export type LogLevelType = LogLevel.LogLevel["label"];
+export type LogLevelType = "FATAL" | "ERROR" | "WARN" | "INFO" | "DEBUG" | "TRACE";
 
 /// 로그 메시지 형식을 맞추기 위한 함수들입니다.
 
@@ -32,10 +32,8 @@ const stringify = ({ colors = false }: { colors?: boolean } = {}) =>
         const message: unknown = info.message;
         info.message =
             Array.isArray(message) ?
-                message
-                    .map((input) => (String.isString(input) ? input : inspect(input, inspectOptions({ level: info.level, colors }))))
-                    .join(" ")
-            : String.isString(message) ? message
+                message.map((input) => (isString(input) ? input : inspect(input, inspectOptions({ level: info.level, colors })))).join(" ")
+            : isString(message) ? message
             : inspect(message, inspectOptions({ level: info.level, colors }));
         return info;
     })();
@@ -90,45 +88,3 @@ export const logger =
     (...message: unknown[]) => {
         winstonLogger().log(level.toUpperCase(), { message });
     };
-
-// for effect system
-
-const fromLabel = (label: LogLevelType): LogLevel.LogLevel =>
-    (
-        ({
-            ALL: LogLevel.All,
-            DEBUG: LogLevel.Debug,
-            ERROR: LogLevel.Error,
-            FATAL: LogLevel.Fatal,
-            INFO: LogLevel.Info,
-            OFF: LogLevel.None,
-            TRACE: LogLevel.Trace,
-            WARN: LogLevel.Warning,
-        }) satisfies Record<LogLevelType, LogLevel.LogLevel>
-    )[label];
-
-export const EffectLogger = Make.once(() =>
-    Logger.replace(
-        Logger.defaultLogger,
-
-        Logger.make((options) => {
-            const level = options.logLevel;
-            const annotations = [...options.annotations].flatMap(([key, value]) => [`\n[${key}]`, value]);
-            const body = Array.isArray(options.message) ? options.message : [options.message];
-            const lowercase = (
-                {
-                    ALL: "all",
-                    OFF: "off",
-                    DEBUG: "debug",
-                    ERROR: "error",
-                    FATAL: "fatal",
-                    INFO: "info",
-                    TRACE: "trace",
-                    WARN: "warn",
-                } satisfies Record<LogLevelType, Lowercase<LogLevelType>>
-            )[level.label];
-            if (lowercase === "all" || lowercase === "off") return;
-            logger(lowercase)(...annotations, ...body);
-        }),
-    ).pipe(Layer.provide(Logger.minimumLogLevel(fromLabel(config("LOG_LEVEL"))))),
-);
