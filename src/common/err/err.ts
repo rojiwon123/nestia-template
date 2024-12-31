@@ -1,6 +1,7 @@
 export class Err<Body extends Err.Body<string>> extends Error {
     constructor(
         readonly body: Body,
+        readonly status: number,
         ...cause: Error[]
     ) {
         super(body.code);
@@ -10,10 +11,6 @@ export class Err<Body extends Err.Body<string>> extends Error {
     static is(input: unknown): input is Err<Err.Body<string>> {
         return input instanceof Err;
     }
-
-    toHttp(status: number): Err.Http<Body> {
-        return new Err.Http(status, this.body);
-    }
 }
 
 export namespace Err {
@@ -21,17 +18,17 @@ export namespace Err {
         readonly code: T;
         readonly message?: string;
     }
-    export class Http<Body extends Err.Body<string>> extends Err<Body> {
-        constructor(
-            readonly status: number,
-            body: Body,
-            ...cause: Error[]
-        ) {
-            super(body, ...cause);
-        }
+    // export class Http<Body extends Err.Body<string>> extends Err<Body> {
+    //     constructor(
+    //         readonly status: number,
+    //         body: Body,
+    //         ...cause: Error[]
+    //     ) {
+    //         super(body, ...cause);
+    //     }
 
-        static override is(input: unknown): input is Err.Http<Err.Body<string>> {
-            return input instanceof Err.Http;
-        }
-    }
+    //     static override is(input: unknown): input is Err.Http<Err.Body<string>> {
+    //         return input instanceof Err.Http;
+    //     }
+    // }
 }
