@@ -26,36 +26,14 @@ generator erd {
 model users {
   ///  `uuid` string
   ///
-  id         String     @id @database.Uuid
+  id         String    @id @database.Uuid
   ///  displayed name of user
   ///
   name       String
   ///  url of user profile image
   ///
   image_url  String?
-  created_at DateTime   @database.Timestamptz
-  updated_at DateTime?  @database.Timestamptz
-  deleted_at DateTime?  @database.Timestamptz
-  articles   articles[]
-}
-
-///  Root Entity of Article
-///
-///  @namespace All
-///
-///  @author rojiwon
-///
-model articles {
-  ///  `uuid` string
-  ///
-  id         String    @id @database.Uuid
-  ///  referenced in `users`
-  ///
-  ///  `uuid` string
-  ///
-  author_id  String    @database.Uuid
-  author     users     @relation(fields: [author_id], references: [id])
-  body       String
   created_at DateTime  @database.Timestamptz
+  updated_at DateTime? @database.Timestamptz
   deleted_at DateTime? @database.Timestamptz
 }

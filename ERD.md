@@ -17,14 +17,6 @@ erDiagram
   DateTime updated_at "nullable"
   DateTime deleted_at "nullable"
 }
-"articles" {
-  String id PK
-  String author_id FK
-  String body
-  DateTime created_at
-  DateTime deleted_at "nullable"
-}
-"articles" }o--|| "users" : author
 ```
 
 ### `users`
@@ -38,21 +30,6 @@ Root Entity of User
 - `image_url`: url of user profile image
 - `created_at`:
 - `updated_at`:
-- `deleted_at`:
-
-### `articles`
-
-Root Entity of Article
-
-**Properties**
-
-- `id`: `uuid` string
-- `author_id`
-    > referenced in `users`
-    >
-    > `uuid` string
-- `body`:
-- `created_at`:
 - `deleted_at`:
 
 ## User
