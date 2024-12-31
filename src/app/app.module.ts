@@ -1,4 +1,8 @@
 import * as nest from "@nestjs/common";
 
-@nest.Module({})
+import { InfraModule } from "@/infrastructure/infra.module";
+
+import { SystemModule } from "./system/system.module";
+
+@nest.Module({ imports: [InfraModule, SystemModule] })
 export class AppModule {}
