@@ -1,0 +1,101 @@
+name: Release 🔖
+
+on:
+    workflow_dispatch:
+        inputs:
+            sdk:
+                required: true
+                default: false
+                type: boolean
+
+permissions:
+    id-token: write
+    contents: write
+    packages: write
+    pages: write
+
+env:
+    GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+concurrency:
+    group: release
+    cancel-in-progress: false
+
+jobs:
+    test:
+        if: startsWith(github.ref, 'refs/heads/main')
+        uses: ./.github/workflows/test.yml
+
+    release:
+        needs: test
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout 🛎️
+              uses: actions/checkout@main
+
+            - name: Check Version
+              id: version
+              run: |
+                  VERSION=$(node -p "require('./package.json').version")
+                  if git rev-parse "v$VERSION" >/dev/null 2>&1; then
+                    echo "Tag v$VERSION already exist"
+                    exit 1
+                  fi
+                  echo "output=$VERSION" >> "$GITHUB_OUTPUT"
+
+            - name: Setup NodeJS
+              uses: actions/setup-node@main
+              with:
+                  node-version: 20
+                  registry-url: https://npm.pkg.github.com/
+                  scope: "@rojiwon123"
+
+            - name: Configure AWS credentials 🔑
+              uses: aws-actions/configure-aws-credentials@main
+              with:
+                  role-to-assume: ${{ vars.AWS_ASSUME_ROLE_ARN }}
+                  aws-region: ${{ vars.AWS_REGION }}
+
+            - name: Build & Push Docker Image 🐳
+              id: image
+              uses: deploy-actions/push-to-ecr@v1
+              with:
+                  repository-name: ${{ vars.PROJECT_NAME }}
+                  image-tag: ${{ steps.version.outputs.output }}
+                  overwrite: false
+
+            - name: Deploy Lambda
+              uses: deploy-actions/lambda-api@main
+              with:
+                  Name: ${{ vars.PROJECT_NAME }}
+                  ImageUri: ${{ steps.image.outputs.image_uri }}
+                  MemorySize: 1024
+                  Timeout: 10
+
+            - name: Build API Doc/SDK
+              run: npm ci && npm run build:nestia
+
+            - name: Setup Pages
+              uses: actions/configure-pages@v5
+
+            - name: Upload artifact
+              uses: actions/upload-pages-artifact@v3
+              with:
+                  path: ./packages/doc
+                  name: github-pages
+
+            - name: Deploy to Github Pages
+              uses: actions/deploy-pages@v4
+
+            - name: Publish SDK
+              if: ${{ inputs.sdk }}
+              run: |
+                  TAG=v${{ steps.version.outputs.output }}
+                  git config --global user.email "github-actions@github.com"
+                  git config --global user.name "GitHub Actions"
+                  git tag -a "$TAG" -m "release $TAG"
+                  git push origin "$TAG"
+                  gh release create "$TAG" -t "$TAG" --target "${{ github.sha }}" --generate-notes
+                  npm publish ./packages/sdk --access restricted
